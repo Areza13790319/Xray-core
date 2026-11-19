@@ -1,3 +1,4 @@
+
 //go:build android
 
 package tun
@@ -7,6 +8,7 @@ import (
 	"net"
 	"strconv"
 
+	"github.com/wlynxg/anet"
 	"github.com/xtls/xray-core/common/errors"
 	"github.com/xtls/xray-core/common/platform"
 	"golang.org/x/sys/unix"
@@ -67,7 +69,7 @@ func (t *AndroidTun) Index() (int, error) {
 	if err != nil {
 		return 0, err
 	}
-	iface, err := net.InterfaceByName(name)
+	iface, err := anet.InterfaceByName(name)
 	if err != nil {
 		return 0, err
 	}
@@ -82,7 +84,7 @@ func findOutboundInterface(tunIndex int, fixedName string) (*net.Interface, erro
 	if fixedName == "" {
 		return nil, errors.New("automatic outbound interface selection is not supported on this platform")
 	}
-	iface, err := net.InterfaceByName(fixedName)
+	iface, err := anet.InterfaceByName(fixedName)
 	if err != nil {
 		return nil, err
 	}
