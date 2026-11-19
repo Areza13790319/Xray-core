@@ -8,7 +8,6 @@ import (
 	"net"
 	"strconv"
 
-	"github.com/wlynxg/anet"
 	"github.com/xtls/xray-core/common/errors"
 	"github.com/xtls/xray-core/common/platform"
 	"golang.org/x/sys/unix"
@@ -69,7 +68,7 @@ func (t *AndroidTun) Index() (int, error) {
 	if err != nil {
 		return 0, err
 	}
-	iface, err := anet.InterfaceByName(name)
+	iface, err := interfaceByName(name)
 	if err != nil {
 		return 0, err
 	}
@@ -84,7 +83,7 @@ func findOutboundInterface(tunIndex int, fixedName string) (*net.Interface, erro
 	if fixedName == "" {
 		return nil, errors.New("automatic outbound interface selection is not supported on this platform")
 	}
-	iface, err := anet.InterfaceByName(fixedName)
+	iface, err := interfaceByName(fixedName)
 	if err != nil {
 		return nil, err
 	}
@@ -92,4 +91,27 @@ func findOutboundInterface(tunIndex int, fixedName string) (*net.Interface, erro
 		return nil, errors.New("outbound interface cannot be the TUN interface")
 	}
 	return iface, nil
+}
+
+// interfaceByName gets an interface index without using NetlinkRIB.
+func interfaceByName(name string) (*net.Interface, error) {
+	ifr, err := unix.NewIfreq(name)
+	if err != nil {
+		return nil, err
+	}
+
+	fd, err := unix.Socket(unix.AF_INET, unix.SOCK_DGRAM|unix.SOCK_CLOEXEC, 0)
+	if err != nil {
+		return nil, err
+	}
+	defer unix.Close(fd)
+
+	if err := unix.IoctlIfreq(fd, unix.SIOCGIFINDEX, ifr); err != nil {
+		return nil, err
+	}
+
+	return &net.Interface{
+		Name:  name,
+		Index: int(ifr.Uint32()),
+	}, nil
 }
